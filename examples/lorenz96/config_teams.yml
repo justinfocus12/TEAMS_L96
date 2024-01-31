@@ -1,0 +1,32 @@
+time_horizon_minustadv_phys: 6.0
+extend_horizon_flag: 1
+split_interval_phys: 0 # Minimum physical time between splitting events
+advance_split_time_range_phys: [0.0,0.0]
+adaptive_advance: 0
+chunks_per_mem: 1
+perturb_start: 
+  original_tree: 0.02 # just so that separate runs of TEAMS are independent
+  nonoriginal_trees: 0.0
+politics:
+  max_family_size: .inf
+  pop_growth_rate: 1 # 
+  batch_size: 1
+  grove_size: 1
+  base_size: 128
+  min_ancestor_diversity: 2 # When the number of live ancestors falls below this number,terminate 
+  # How fast to raise levels
+  level_raising_schedule: 
+    type: const_num2drop # options are const_num2drop, const_frac2drop
+    speed: 1  # Interpretation depends on type
+  # How to eliminate families
+  local_improvement_schedule:  # how fast children must outperform their ancestors to stay in the pool (once this stops, we conclude the upper limit has been reached)
+    type: none
+    check_freq: 4
+    param_fun: EXP 
+acquisition:
+  normalize_perts_TEAMS: 0
+  perturb_everywhen_TEAMS: 1
+
+score:
+  tavg_phys: 0.0
+  twait_phys: default

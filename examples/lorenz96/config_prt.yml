@@ -1,0 +1,16 @@
+chunks_per_mem: 1
+time_horizon_spine_phys: 1000
+spinup_time_phys: 50
+time_horizon_hindcast_phys: 15
+hindcast_init_interval_phys: 20
+hindcast_ensemble_size: 16
+perturb_start: 
+  original_tree: 0.01 # just so that separate runs of AMS are independent
+  nonoriginal_trees: 0.0
+politics:
+sampling_method: MC # choices: MC (Monte Carlo), GG (Gauss Grid), CC (Clenshaw-Curtis), UG (uniform grid), ...
+score: 
+  tavg_phys: 0
+  twait_phys: 0
+
+

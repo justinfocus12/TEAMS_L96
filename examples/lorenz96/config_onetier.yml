@@ -1,0 +1,21 @@
+# Fundamental parameters for the one-tier Lorenz-96 model with stochastic forcing
+F: 6.0
+J: 0
+K: 40
+a: 1.0 # constant in front of X advection term
+b: 10.0
+c: 10.0
+h: 1.0
+noise:
+  type: white
+  magnitude_at_site: []
+  magnitude_at_wavenumber: [3.0]
+  sites: []
+  wavenumbers: [4]
+parallel_flag: false
+print_interval: 1000
+seed_min: 88888
+seed_max: 99999
+time_unit: 0.05
+sims_per_unit: 50
+polycoef: []
