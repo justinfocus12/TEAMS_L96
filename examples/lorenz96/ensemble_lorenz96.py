@@ -9,7 +9,6 @@ matplotlib.rcParams.update({
 svkwargs = dict(bbox_inches="tight",pad_inches=0.2)
 from matplotlib.gridspec import GridSpec
 from numpy.random import default_rng
-from scipy.linalg import solve_sylvester
 from scipy.special import softmax, logsumexp
 from scipy.stats import norm as spnorm
 import xarray as xr
@@ -17,7 +16,6 @@ import yaml
 import os
 from os.path import join, exists
 from os import mkdir, makedirs
-from numpy.random import default_rng
 import pickle
 import copy as copylib
 

@@ -12,22 +12,17 @@ matplotlib.rcParams.update({
 })
 svkwargs = dict(bbox_inches="tight",pad_inches=0.2)
 import xarray as xr
-from sklearn.gaussian_process import GaussianProcessRegressor,kernels
 import dask
 import netCDF4 as nc
 from numpy.random import default_rng
 import pickle
 import yaml
 from scipy.stats import norm as spnorm
-from scipy.special import logsumexp,softmax
-from scipy.interpolate import RegularGridInterpolator
-from scipy import optimize as spopt
 import sys
 import os
 from os.path import join, exists
 from os import mkdir, makedirs
 from collections import deque
-import shutil
 import glob
 import copy as copylib
 from importlib import reload
@@ -35,10 +30,10 @@ from multiprocessing import pool as mppool
 
 sys.path.append("../..")
 import utils
-from prt_manager import PRTManager
+from pert_manager import PERTManager
 from ensemble_lorenz96 import Lorenz96Ensemble, Lorenz96EnsembleMember
 
-class Lorenz96PRTManager(PRTManager):
+class Lorenz96PERTManager(PERTManager):
     def score_fun_multiple(self, hist_mem, score_multiple_ancestral=None):
         score_mem = (hist_mem["x"].sel(k=0)).compute()
         #print(f"score_mem.time = {score_mem.time.to_numpy()}")
@@ -274,7 +269,7 @@ class Lorenz96PRTManager(PRTManager):
         return
 
     @classmethod
-    def configure_prt(cls, config_algo, model_params, rng):
+    def configure_pert(cls, config_algo, model_params, rng):
         tu = model_params["time_unit"]
         algo_params = dict({
             "spinup_time": int(config_algo["spinup_time_phys"]/tu),
@@ -284,7 +279,6 @@ class Lorenz96PRTManager(PRTManager):
             "hindcast_ensemble_size": config_algo["hindcast_ensemble_size"],
             "chunks_per_mem": config_algo["chunks_per_mem"],
             "perturb_start": config_algo["perturb_start"],
-            "sampling_method": config_algo["sampling_method"],
             "perturb_start": config_algo["perturb_start"],
             "score": dict({
                 "tavg": max(1,int(config_algo["score"]["tavg_phys"]/tu)),
@@ -302,8 +296,7 @@ class Lorenz96PRTManager(PRTManager):
         tu = config_model["time_unit"]
 
         label = (
-                f"PRT"
-                f"_{config_algo['sampling_method']}"
+                f"PERT"
                 f"_enssz{config_algo['hindcast_ensemble_size']}"
                 f"_horzlong{config_algo['time_horizon_spine_phys']}"
                 f"_horzshort{config_algo['time_horizon_hindcast_phys']}"
@@ -325,26 +318,22 @@ def rolling_average(da, window_size, nanstart=True):
     da_rollavg = da.rolling({"time": nshift}, min_periods=min_periods).sum() * dt 
     return da_rollavg
 
-def prt_analysis(prt_dir,config_model,config_algo,tododict):
+def pert_analysis(pert_dir,config_model,config_algo,tododict):
     # Load the managers
-    manager = pickle.load(open(join(prt_dir,"metadata","manager"), 'rb'))
+    manager = pickle.load(open(join(pert_dir,"metadata","manager"), 'rb'))
 
     model_params = manager.ens.model_params
     algo_params = manager.algo_params
 
     _,paramdisp_model = Lorenz96Ensemble.label_from_config(config_model)
-    paramlab_algo = Lorenz96PRTManager.label_from_config(config_algo,config_model)
+    paramlab_algo = Lorenz96PERTManager.label_from_config(config_algo,config_model)
     paramdisp = paramdisp_model #+ "\n" + paramdisp_algo
 
 
     if tododict["quantify_divergence_rates"]:
-        Lorenz96PRTManager.quantify_divergence_rates(Lorenz96Ensemble, manager, prt_dir)
+        Lorenz96PERTManager.quantify_divergence_rates(Lorenz96Ensemble, manager, pert_dir)
     if tododict["plot_spaghetti"]:
-        Lorenz96PRTManager.plot_member_spaghetti(Lorenz96Ensemble, manager, prt_dir, paramdisp_model, state_label=r"$x_0$", score_label=r"$x_0^2$")
-    if tododict["summarize_tail"]:
-        # Load the control simulation
-        ens_dss = pickle.load(open(join(dss_dir, "output", "ens"),"rb"))
-        Lorenz96PRTManager.plot_pdf_change(Lorenz96Ensemble, manager, prt_dir, ens_dss, paramdisp_model)
+        Lorenz96PERTManager.plot_member_spaghetti(Lorenz96Ensemble, manager, pert_dir, paramdisp_model, state_label=r"$x_0$", score_label=r"$x_0^2$")
 
 
     return
@@ -352,18 +341,18 @@ def prt_analysis(prt_dir,config_model,config_algo,tododict):
 
 
 
-def prt(home_dir, prt_dir, config_model, config_algo, mem_per_tree, seed):
+def pert(home_dir, pert_dir, config_model, config_algo, mem_per_tree, seed):
     ensemble_size_limit = 1
 
     model_params = Lorenz96Ensemble.complete_model_params(config_model)
     rng = default_rng(seed=seed)
-    algo_params = Lorenz96PRTManager.configure_prt(config_algo, model_params, rng)
+    algo_params = Lorenz96PERTManager.configure_pert(config_algo, model_params, rng)
     tu = config_model["time_unit"]
 
-    dirs_man = dict({"metadata": join(prt_dir, "metadata")})
+    dirs_man = dict({"metadata": join(pert_dir, "metadata")})
     dirs_ens = dict({
-        "output": join(prt_dir,"output"),
-        "work": join(prt_dir,"work"),
+        "output": join(pert_dir,"output"),
+        "work": join(pert_dir,"work"),
         "home": home_dir,
         })
 
@@ -374,8 +363,8 @@ def prt(home_dir, prt_dir, config_model, config_algo, mem_per_tree, seed):
     elif mem_per_tree > 0:
         # ------- Spinup ------------
         dirs_spinup = dict({
-            "output": join(prt_dir,"spinup","output"),
-            "work": join(prt_dir,"spinup","work"),
+            "output": join(pert_dir,"spinup","output"),
+            "work": join(pert_dir,"spinup","work"),
             "home": home_dir,
             })
         ens_spinup = Lorenz96Ensemble.default_init(dirs_spinup, model_params, 1)
@@ -389,7 +378,7 @@ def prt(home_dir, prt_dir, config_model, config_algo, mem_per_tree, seed):
         init_pool.appendleft((ens_spinup.mem_list[-1].term_file_list[-1], ens_spinup.mem_list[-1].term_time_list[-1].item()))
         # ------------- end spinup -----------------
         ens = Lorenz96Ensemble.default_init(dirs_ens, model_params, ensemble_size_limit)
-        manager = Lorenz96PRTManager(dirs_man, algo_params, init_pool)
+        manager = Lorenz96PERTManager(dirs_man, algo_params, init_pool)
         manager.link_model(ens)
     else:
         raise Exception("No manager exists, so you called with no reason")
@@ -399,34 +388,30 @@ def prt(home_dir, prt_dir, config_model, config_algo, mem_per_tree, seed):
     while one_more_round:
         manager.take_next_step(Lorenz96EnsembleMember)
         one_more_round = (len(manager.ens.mem_list) < mem_per_tree) and not (manager.acq_state_global["next_action"] == "terminate")
-    return prt_dir
+    return pert_dir
 
-def prt_pipeline():
+def pert_pipeline():
     tododict = dict(
-        run_prt_flag =              0,
-        quantify_divergence_rates = 0,
-        plot_spaghetti =            1,
-        summarize_tail =            0,
+        run_pert_flag =              0,
+        quantify_divergence_rates =  0,
+        plot_spaghetti =             1,
         )
 
     params_from_sysargs = True
 
 
     # Load all YAML files here, only once
-    config_prt_file = "config_prt.yml"
-    config_algo = yaml.safe_load(open(config_prt_file, "r"))
+    config_pert_file = "config_pert.yml"
+    config_algo = yaml.safe_load(open(config_pert_file, "r"))
     config_dns_file = "./config_onetier.yml"  # Or a different file generated by a parameterization procedure
     config_model = yaml.safe_load(open(config_dns_file,"r"))
 
     computer = "engaging"
     if computer == "engaging":
-        home_dir = "/home/ju26596/rare_event_simulation/splitting"
-        scratch_dir = f"/net/hstor001.ib/pog/001/ju26596/splitting_results/examples/lorenz96"
-    elif computer == "jflaptop":
-        scratch_dir = "/Users/justinfinkel/Documents/postdoc_mit/computing/rare_event_sampling/splitting_data/lorenz96"
-        home_dir = "/Users/justinfinkel/Documents/postdoc_mit/computing/rare_event_sampling/splitting"
+        home_dir = "/home/ju26596/rare_event_simulation/TEAMS_L96"
+        scratch_dir = f"/net/hstor001.ib/pog/001/ju26596/TEAMS_L96_results/examples/lorenz96"
 
-    date_str = "2023-12-27"
+    date_str = "2024-02-01"
     sub_date_str = "2"
     expt_dir = join(scratch_dir, date_str, sub_date_str)
     max_mem_per_tree = 1000
@@ -437,17 +422,6 @@ def prt_pipeline():
     print(f"{max_mem_per_tree = }")
 
 
-    #config_str_model,config_disp_model = Lorenz96Ensemble.label_from_config(config_model)
-    #config_str_algo = Lorenz96PRTManager.label_from_config(config_algo,config_model)
-
-    if computer == "engaging":
-        scratch_dir = f"/pool001/ju26596/splitting/lorenz96/"
-        home_dir = "/home/ju26596/rare_event_simulation/splitting"
-        #dss_dir_validation = join("/pool001/ju26596/splitting/lorenz96/2023-11-10/0", config_str_model, "DNS")
-    elif computer == "jflaptop":
-        scratch_dir = "/Users/justinfinkel/Documents/postdoc_mit/computing/rare_event_sampling/splitting_data/lorenz96"
-        home_dir = "/Users/justinfinkel/Documents/postdoc_mit/computing/rare_event_sampling/splitting"
-
     # Modify the physical model parameters
     mag_list = np.array([3.0,1.0,0.5,0.25])
     wn_list = np.array([1,4,7,10])
@@ -455,14 +429,14 @@ def prt_pipeline():
         config_model['noise']['wavenumbers'][0] = wn_list[int(sys.argv[1])]
         config_model["noise"]["magnitude_at_wavenumber"][0] = mag_list[int(sys.argv[2])]
     config_label_model,config_display_model = Lorenz96Ensemble.label_from_config(config_model)
-    config_label_algo = Lorenz96PRTManager.label_from_config(config_algo, config_model)
-    prt_dir = join(expt_dir, config_label_model, config_label_algo)
-    makedirs(prt_dir, exist_ok=True)
+    config_label_algo = Lorenz96PERTManager.label_from_config(config_algo, config_model)
+    pert_dir = join(expt_dir, config_label_model, config_label_algo)
+    makedirs(pert_dir, exist_ok=True)
     seed = 0
-    if tododict["run_prt_flag"]:
-        prt(home_dir, prt_dir, config_model, config_algo,max_mem_per_tree, seed)
+    if tododict["run_pert_flag"]:
+        pert(home_dir, pert_dir, config_model, config_algo,max_mem_per_tree, seed)
 
-    prt_analysis(prt_dir,config_model,config_algo,tododict)
+    pert_analysis(pert_dir,config_model,config_algo,tododict)
     return
 
 def deep_get(dictionary, keys, default=None): # from stackoverflow
@@ -470,12 +444,10 @@ def deep_get(dictionary, keys, default=None): # from stackoverflow
 
 def meta_analysis_pipeline():
     computer = "engaging"
-    if computer == "jflaptop":
-        scratch_dir = "/Users/justinfinkel/Documents/postdoc_mit/computing/rare_event_sampling/splitting_data/lorenz96"
-    elif computer == "engaging":
-        home_dir = "/home/ju26596/rare_event_simulation/splitting"
-        scratch_dir = f"/net/hstor001.ib/pog/001/ju26596/splitting_results/examples/lorenz96"
-    date_str = "2023-12-27"
+    if computer == "engaging":
+        home_dir = "/home/ju26596/rare_event_simulation/TEAMS_L96"
+        scratch_dir = f"/net/hstor001.ib/pog/001/ju26596/TEAMS_L96_results/examples/lorenz96"
+    date_str = "2024-02-01"
     sub_date_str = "2"
     expt_dir = join(scratch_dir, date_str, sub_date_str)
 
@@ -495,7 +467,7 @@ def meta_analysis_pipeline():
     print(f"{forcing_dirs[0] = }")
     algo_dirs = []
     for fd in forcing_dirs:
-        algo_dirs += glob.glob(join(fd, "PRT*enssz16*"))
+        algo_dirs += glob.glob(join(fd, "PERT*enssz16*"))
     print(f"{forcing_dirs = }")
     print(f"{algo_dirs = }")
     print(f"{labels = }")
@@ -510,10 +482,10 @@ def meta_analysis_pipeline():
     p0abbrv = "wn"
     p1abbrv = "mag"
     mag_delta_pairs = np.array([[3.0,1.0,0.5,0.25],[0.0,0.6,1.0,1.4]])
-    prt_meta_analysis(algo_dirs,meta_dir,p0fun,p1fun,p0label,p1label,p0abbrv,p1abbrv,"",mag_delta_pairs)
+    pert_meta_analysis(algo_dirs,meta_dir,p0fun,p1fun,p0label,p1label,p0abbrv,p1abbrv,"",mag_delta_pairs)
     return
 
-def prt_meta_analysis(algo_dirs,meta_dir,p0fun,p1fun,p0label,p1label,p0abbrv,p1abbrv,prefix,mag_delta_pairs):
+def pert_meta_analysis(algo_dirs,meta_dir,p0fun,p1fun,p0label,p1label,p0abbrv,p1abbrv,prefix,mag_delta_pairs):
    
     results = dict({
         "sat_time": [],
@@ -630,6 +602,6 @@ def prt_meta_analysis(algo_dirs,meta_dir,p0fun,p1fun,p0label,p1label,p0abbrv,p1a
 
 
 if __name__ == "__main__": 
-    prt_pipeline()
+    pert_pipeline()
     #meta_analysis_pipeline()
 

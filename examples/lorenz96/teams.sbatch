@@ -10,4 +10,4 @@
 
 module load anaconda3/2022.05-x86_64
 source activate resenv
-python -u teams_manager_lorenz96.py 2 $SLURM_ARRAY_TASK_ID {0..55} > progress_"$SLURM_ARRAY_JOB_ID"_"$SLURM_ARRAY_TASK_ID".out
+python -u teams_manager_lorenz96.py 0 $SLURM_ARRAY_TASK_ID {0..55} > progress_"$SLURM_ARRAY_JOB_ID"_"$SLURM_ARRAY_TASK_ID".out

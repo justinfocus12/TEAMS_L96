@@ -8,7 +8,6 @@ perturb_start:
   original_tree: 0.01 # just so that separate runs of AMS are independent
   nonoriginal_trees: 0.0
 politics:
-sampling_method: MC # choices: MC (Monte Carlo), GG (Gauss Grid), CC (Clenshaw-Curtis), UG (uniform grid), ...
 score: 
   tavg_phys: 0
   twait_phys: 0

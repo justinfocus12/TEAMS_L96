@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 class Ensemble(ABC):
     def __init__(self,dirs,model_params,ensemble_size_limit):
 
-        self.ensemble_size_limit = ensemble_size_limit
+        self.ensemble_size_limit = ensemble_size_limit # how many runs we can do IN PARALLEL 
 
         # Set up directories
         if not np.all([dirname in dirs for dirname in ["home","work","output"]]):

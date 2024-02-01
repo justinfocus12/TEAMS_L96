@@ -1,68 +1,17 @@
-This repo has many vestigial (or at least hibernating) files. The general structure is as follows.
+This repository contains python modules and scripts to run the experiments in the preprint ``Bringing statistics to storylines: rare event sampling for sudden, transient extreme events'' by Justin Finkel and Paul A. O'Gorman. A brief overview of the file/directory organization follows.
 
-The top-level directory ("splitting") has three key files:
-1. ensemble.py contains class definitions for the Ensemble and EnsembleMember classes. These are abstract classes for storing collections of dynamical trajectories, including relations between ancestors and descendants. Each instantiation is responsible for implementing forward simulation and storage/accessing of model output. 
-2. utils.py has a collection of useful functions used throughout the repo.
-3. amc_manager.py contains a class definition for AMCManager, which carries out an Adaptive Monte Carlo algorithm by directing an Ensemble object. AMC includes AMS as a special case, as well as (in development) a Multi-Armed Bandit optimization algorithm. There are many other <...>_manager.py files corresponding to past experiments.
+# Structure of directories and classes 
 
-Within the "examples" directory are a collection of test cases. The three most important so far are 
-1. lorenz96
-2. ornstein_uhlenbeck 
-3. frierson_gcm 
+The top-level folder, `TEAMS_L96`, contains abstract class definitions for managing ensembles of trajectories of dynamical systems, whereas the subfolder `TEAMS_L96/examples/lorenz96` instantiates those classes for the Lorenz-96 model. In principle, a user can add further examples by modifying the Lorenz-96-specific code and putting it into another folder, e.g., `TEAMS_L96/examples/mymodel`. The general classes are as follows:
 
-but (3) is not up to date.
+1. `ensemble.py` defines two abstract classes: 
+    - `EnsembleMember` represents a single, unbroken forward simulation. It has abstract methods for running dynamics forward (which must be instantiated by each system separately; for Lorenz-96, it is a simple Euler-Maruyama timestep, but for complex models one could call Fortran code through a subprocess or `f2py`). It also contains metadata, such as directories for saving output and `warmstart_info`, which contains initial conditions and perturbations needed for the integration. There is also an abstract method for loading the history of an ensemble member into memory, which is useful when we have thousands of integrations that would be unwieldy or impossible to store at once. 
+    - `Ensemble` represents a branching tree of `EnsembleMember`s evolving according to common dynamics.  It has an attribute `mem_list` which is a list of `EnsembleMember` instances, as well as `address_book` which is a list of lists of integers encoding relations between members. The element `address_book[i]` always ends with `i`. If `i` is an ancestral trajectory, `address_book[i]` has length 1. Otherwise, `address_book[i][-2]` is the parent of `i`, and so on until the leading element which is always an ancestor. `Ensemble` also has instance methods `initialize_new_member` and `run_batch` which instantiates new `EnsembleMember`s and incorporates them into the family tree. While the forward solving is achieved in `EnsembleMember.run_one_cycle`, the dynamics can be parameterized through the `model_params` argument to `Ensemble.__init__`, which is forwarded to all `EnsembleMember`s.
 
----------------------
-Software requirements
----------------------
-Python >= 3.8, along with many python libraries, notably xarray, available through anaconda. I think the following packages should be sufficient for the basic test cases of OU and Lorenz96:
-
-numpy
-xarray
-dask
-netCDF4 
-scipy
-matplotlib
-sklearn
+2. `teams_manager.py` defines an abstract class TEAMSManager which manages an instance of Ensemble to implement the TEAMS algorithm. The manager can be seen as a state machine which updates with each new trajectory, the update being performed by the method `take_next_step`. The algorithm's state is encoded through the following mutable instance variables:
+    - `max_scores` (and other lists initialized in `TEAMSManager.__init__`) track the score functions, splitting times, and other information for each new member.
+    - `acq_state_global` (a dictionary) holds the information for choosing members to split, members to kill, weights assigned to each member, multiplicities, and the current level.
+    - `acq_state_local` (a dictionary with a different key for each member) holds the information needed to spawn a child from that member, most importantly the time at which the member's score crosses the current level.
 
 
-
-
-----------------------
-OU Process directions
-----------------------
-1. Navigate to examples/ornstein_uhlenbeck
-2. Open the file ornstein_uhlenbeck.py, which implements the OrnsteinUhlenbeckEnsemble(Member) classes. Go to the function "run_long_integration" and change home_dir and scratch_dir to your own source directory (top level of "splitting") and where you want to store the output data, respectively. 
-3. From the terminal, type 
-
-$ python ornstein_uhlenbeck.py 
-
-to run an integration for 30000 time units with a save-out time of 0.01 (and a timestep of 0.001). These parameters can be changed. The output folder you specified should now contain a folder called ctrl_1x3000000 (the factor of 100 counts all the timesteps), and subdirectories "output" and "work". Within "output" you should see a binary file, "ens", with the metadata for the 1-member ensemble you created by this simulation. The subdirectory "mem000" should have a netcdf file for the time history, and a "restart" file, mimicking the GCM structure. 
-
-4. Copy the full file path to the netcdf file. In the source file amc_manager_ou.py in the function "amc" which (under its current settings) implements AMS, assign the variable "dns_file" to that path. Modify home_dir and scratch_dir as above. Note that the amc() routine automatically appends some extra stuff to scratch_dir to specify this unique experiment, including "date_str",  "sub_date_str", and "AMS_<jumbled abbreviations for parameters>". The variable 'expt_dir' specifies the path to that directory. 
-
-5. Adjust parameters of the algorithm via the dictionary "algo_params" to your liking. Most important parameters are "ams_base_size" (initial ensemble size) and "ams_num2drop" (how many members to kill each generation)
-
-6. In the "if __name__ == "__main__" block, set run_amc_flag = 1 and analyze_amc_flag = 0. The latter is for making plots after the run is over.
-
-7. In the terminal, type
-
-$ python amc_manager_ou.py 0 1
-
-to run two independent runs of AMS with random seeds 0 and 1. You can add more numbers to the list if you want. Lots and lots of output will be printed to the screen. Afterward, the metadata and trajectory data will be stored in expt_dir.
-
-8. To analyze the output, copy the full path to expt_dir ("<date_str>/<sub_date_str>/AMS_<...>") and assign it to the variable "expt_dir" within the "amc_analysis" function. Assign "ctrl_dir" to the path to the DNS you generated (stopping before the "output" directory). In the "if __name__ == "__main__" block, set run_amc_flag = 0 and analyze_amc_flag = 1. 
-
-9. In the terminal, type 
-
-$ python amc_manager_ou.py 
-
-and see the resulting summary plots of the algorithm in expt_dir. 
-
-
------------------------
-Lorenz-96 directions
------------------------
-
-
-
+3. `pert_manager.py` defines an abstract class `PERTManager` which manages an instance of `Ensemble` to perform the experiments to quantify divergence rates of trajectories. The structure is similar to that of `TEAMSManager` but with much simpler logic.
