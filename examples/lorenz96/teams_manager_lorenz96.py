@@ -281,10 +281,7 @@ class Lorenz96TEAMSManager(TEAMSManager):
         ancestor = mem_addr[0]
         A = manager.ens.construct_descent_matrix()
         descendants = np.where(A[ancestor])[0]
-        if manager.algo_params["acquisition"]["local"] in ["AK","NM"]:
-            descendants2plot = mem_addr # too many in between
-        elif manager.algo_params["acquisition"]["local"] in ["AMS"]:
-            descendants2plot = mem_addr 
+        descendants2plot = mem_addr 
 
         tu = manager.ens.model_params["time_unit"]
         K = manager.ens.model_params["K"]
@@ -577,7 +574,7 @@ def teams_analysis(dns_dir,ams_dir,mankeys,config_model,config_algo,tododict):
             fconcat = None
     
         # Plot return period curves
-        TEAMSManager.tabulate_performance_metrics(mandict, ams_dir, dns_total_time*symmetry_factor, fconcat, tododict, paramdisp=paramdisp, ylim=None, bootstrap_version="basic", plot_init_sep=True, plot_init_sup=True, plot_median=False, plot_rt_theoretical=0*(mandict[mankeys[0]].ens.model_params['a'] == 0))
+        TEAMSManager.tabulate_performance_metrics(mandict, ams_dir, dns_total_time*symmetry_factor, fconcat, tododict, paramdisp=paramdisp, ylim=None, bootstrap_version="basic", plot_init_sep=True, plot_init_sup=True, plot_median=False)
 
         
     if tododict["plot_response_flag"]:
@@ -726,7 +723,7 @@ def teams_pipeline():
         run_teams_flag =        1,
         plot_anecdotes =        1,
         spaghetti =             1,
-        hovmuller =             1,
+        hovmuller =             0,
         plot_initial_scores =   1,
         summarize_gains =       1,
         summarize_tail =        1,
@@ -796,8 +793,8 @@ def teams_pipeline():
         if computer == "engaging":
             scratch_dir = f"/net/hstor001.ib/pog/001/ju26596/TEAMS_L96_results/examples/lorenz96"
             home_dir = "/home/ju26596/rare_event_simulation/TEAMS_L96"
-            dns_dir_validation = join("/net/hstor001.ib/pog/001/ju26596/TEAMS_results/examples/lorenz96/2024-01-31/0", config_str_model, "DNS")
-        date_str = "2024-01-31"
+            dns_dir_validation = join("/net/hstor001.ib/pog/001/ju26596/TEAMS_L96_results/examples/lorenz96/2024-01-31/0", config_str_model, "DNS")
+        date_str = "2024-02-01"
         sub_date_str = "1"
         expt_dir = join(scratch_dir, date_str, sub_date_str)
 

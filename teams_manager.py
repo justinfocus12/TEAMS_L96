@@ -701,7 +701,6 @@ class TEAMSManager(ABC):
 
             print(f"rlsf['dns'] = {rlsf['dns']}")
 
-            acqstr = f"{mandict[seeds[0]].algo_params['acquisition']['global']}" #-{mandict[seeds[0]].algo_params['acquisition']['local']}"
 
             fig0,axes0 = plt.subplots(ncols=3, figsize=(18,5)) #, sharey=True)
             fig0.set_facecolor("white")
