@@ -730,8 +730,6 @@ def teams_pipeline():
         plot_return_stats =     1,
         plot_response_flag =    0,
         tally_rejections =      0,
-        analyze_energy_flag =   0,
-        plot_gev_est =          0,
         )
 
     computer = "engaging"
