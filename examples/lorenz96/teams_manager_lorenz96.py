@@ -577,22 +577,6 @@ def teams_analysis(dns_dir,ams_dir,mankeys,config_model,config_algo,tododict):
         TEAMSManager.tabulate_performance_metrics(mandict, ams_dir, dns_total_time*symmetry_factor, fconcat, tododict, paramdisp=paramdisp, ylim=None, bootstrap_version="basic", plot_init_sep=True, plot_init_sup=True, plot_median=False)
 
         
-    if tododict["plot_response_flag"]:
-        for seed in mankeys:
-            manager = mandict[seed]
-
-            n_mem = len(manager.ens.mem_list)
-            n_anc = manager.algo_params["politics"]["base_size"]
-            # a few example criteria by which to choose ancestors for display
-            max_desc_scores = np.max(A[seed][:n_anc]*manager.max_scores, axis=1)
-            max_improvements = max_desc_scores - manager.max_scores[:n_anc]
-            # choose the best ancestor to plot, based on one of the criteria computed above (or make your own)
-            fams2plot = []
-            fams2plot.append(np.argsort(max_desc_scores)[-1])
-            fams2plot.append(np.argsort(max_improvements)[-1])
-            fams2plot = np.unique(fams2plot)
-            for ancestor in fams2plot:
-                Lorenz96TEAMSManager.plot_response_function(manager, ancestor, ams_dir, seed)
     
     # Plot family tree information for some selected ancestors from each manager 
     if tododict["plot_anecdotes"]:
@@ -720,15 +704,14 @@ def teams(home_dir, seed_dir, seed, config_model, config_algo, mem_per_job):
 
 def teams_pipeline():
     tododict = dict(
-        run_teams_flag =        1,
-        plot_anecdotes =        1,
-        spaghetti =             1,
+        run_teams_flag =        0,
+        plot_anecdotes =        0,
+        spaghetti =             0,
         hovmuller =             0,
-        plot_initial_scores =   1,
-        summarize_gains =       1,
         summarize_tail =        1,
         plot_return_stats =     1,
-        plot_response_flag =    0,
+        plot_initial_scores =   0,
+        summarize_gains =       0,
         tally_rejections =      0,
         )
 
@@ -1229,9 +1212,9 @@ def teams_meta_analysis(algo_dirs,meta_dir,p0fun,p1fun,p0label,p1label,p0abbrv,p
 def meta_analysis_pipeline():
     # Meta-analysis
     tododict = dict({
-        "plot_return_stats_multilead":   0,
-        "compute_divs_limited":          0,
+        "compute_divs_limited":          1,
         "plot_divs_limited":             1,
+        "plot_return_stats_multilead":   0,
         "compute_divs":                  0,
         "plot_divs":                     0,
         "copy_images":                   0,
@@ -1240,7 +1223,7 @@ def meta_analysis_pipeline():
     if computer == "engaging":
         home_dir = "/home/ju26596/rare_event_simulation/TEAMS_L96"
         scratch_dir = f"/net/hstor001.ib/pog/001/ju26596/TEAMS_L96_results/examples/lorenz96"
-    date_str = "2024-01-31"
+    date_str = "2024-02-01"
     sub_date_str = "1"
     expt_dir = join(scratch_dir, date_str, sub_date_str)
     print(f"{os.listdir(expt_dir) = }")
@@ -1285,7 +1268,7 @@ def meta_analysis_pipeline():
     for fd in forcing_dirs[1:]:
         print(f"{fd = }")
         print(f"{exists(fd) = }")
-        algo_dirs += glob.glob(join(fd, f"AMS*evw1*base{base_size}*{dropstr}*"))
+        algo_dirs += glob.glob(join(fd, f"*evw1*base{base_size}*{dropstr}*"))
     print(f"{algo_dirs = }")
 
     # Define a 2D subspace of observables (of parameters) to plot
@@ -1300,6 +1283,6 @@ def meta_analysis_pipeline():
     return
 
 if __name__ == "__main__": 
-    teams_pipeline()
-    #meta_analysis_pipeline()
+    #teams_pipeline()
+    meta_analysis_pipeline()
 

@@ -392,8 +392,8 @@ def pert(home_dir, pert_dir, config_model, config_algo, mem_per_tree, seed):
 
 def pert_pipeline():
     tododict = dict(
-        run_pert_flag =              0,
-        quantify_divergence_rates =  0,
+        run_pert_flag =              1,
+        quantify_divergence_rates =  1,
         plot_spaghetti =             1,
         )
 
@@ -423,8 +423,8 @@ def pert_pipeline():
 
 
     # Modify the physical model parameters
-    mag_list = np.array([3.0,1.0,0.5,0.25])
     wn_list = np.array([1,4,7,10])
+    mag_list = np.array([3.0,1.0,0.5,0.25])
     if params_from_sysargs:
         config_model['noise']['wavenumbers'][0] = wn_list[int(sys.argv[1])]
         config_model["noise"]["magnitude_at_wavenumber"][0] = mag_list[int(sys.argv[2])]
@@ -553,47 +553,6 @@ def pert_meta_analysis(algo_dirs,meta_dir,p0fun,p1fun,p0label,p1label,p0abbrv,p1
             ax.set_xticklabels([f"{f:.3f}" for f in results["sat_time"]["rmsdfrac"].to_numpy()])
         fig.savefig(join(meta_dir,(f"sattime_vs_{paabbrv}").replace(".","p")),**svkwargs)
         plt.close(fig)
-
-
-    if False:
-        print(f"{params2compare = }")
-        # 2. Compare saturation time between pairs of magnitudes
-        mag_combos = combinations(np.unique(params2compare["magnitude"]), 2)
-        print(f"{mag_combos = }")
-        for mag_pair in mag_combos:
-            fig,ax = plt.subplots()
-            handles = []
-            for wn in np.unique(params2compare["wavenumber"]):
-                ipar0 = np.where((params2compare["magnitude"] == mag_pair[0]) * (params2compare["wavenumber"] == wn))[0]
-                ipar1 = np.where((params2compare["magnitude"] == mag_pair[1]) * (params2compare["wavenumber"] == wn))[0]
-                h = ax.scatter(sat_times.isel(param=ipar0).sel(rmsdfrac=0.25).to_numpy().flatten(), sat_times.isel(param=ipar1).sel(rmsdfrac=0.25).to_numpy().flatten(), label=r"$\frac{2\pi}{\lambda}=%i$"%(wn))
-                handles.append(h)
-            ax.legend(handles=handles)
-            ax.set_xlabel(r"$t_{1/4}$ for $\delta=%.3f$"%(mag_pair[0]))
-            ax.set_ylabel(r"$t_{1/4}$ for $\delta=%.3f$"%(mag_pair[1]))
-            ax.axline((0,0), slope=1, color="black", linestyle="--")
-            fig.savefig(join(meta_dir,(f"sattime_scatter_mag0{mag_pair[0]}vs{mag_pair[1]}").replace(".","p")), **svkwargs)
-            plt.close(fig)
-
-        # Compare saturation time between pairs of wavenumbers
-        wn_combos = combinations(np.unique(params2compare["wavenumber"]), 2)
-        print(f"{wn_combos = }")
-        for wn_pair in wn_combos:
-            fig,ax = plt.subplots()
-            handles = []
-            for mag in np.unique(params2compare["magnitude"]):
-                ipar0 = np.where((params2compare["magnitude"] == mag) * (params2compare["wavenumber"] == wn_pair[0]))[0]
-                ipar1 = np.where((params2compare["magnitude"] == mag) * (params2compare["wavenumber"] == wn_pair[1]))[0]
-                h = ax.scatter(sat_times.isel(param=ipar0).sel(rmsdfrac=0.25).to_numpy().flatten(), sat_times.isel(param=ipar1).sel(rmsdfrac=0.25).to_numpy().flatten(), label=r"$\delta=%.3f$"%(mag))
-                handles.append(h)
-            ax.legend(handles=handles)
-            ax.set_xlabel(r"$t_{1/4}$ for $\frac{2\pi}{\lambda}=%i$"%(wn_pair[0]))
-            ax.set_ylabel(r"$t_{1/4}$ for $\frac{2\pi}{\lambda}=%i$"%(wn_pair[1]))
-            ax.axline((0,0), slope=1, color="black", linestyle="--")
-            fig.savefig(join(meta_dir,(f"sattime_scatter_wn{wn_pair[0]}vs{wn_pair[1]}").replace(".","p")), **svkwargs)
-            plt.close(fig)
-
-
 
     return
 

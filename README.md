@@ -1,6 +1,6 @@
 This repository contains python modules and scripts to run the experiments in the preprint ``Bringing statistics to storylines: rare event sampling for sudden, transient extreme events'' by Justin Finkel and Paul A. O'Gorman. 
 
-Below we give a brief set of instructions for running the code to produce the results from the paper, followed by a longer (but still cursory) overview of the code organization with indications of how to extend it for other dynamical systems.
+Below we give a brief set of instructions for running the code to produce the results from the paper, followed by a longer (but still cursory) overview of the code organization with indications of how to extend it for other dynamical systems. In the likely scenario of problems, please don't hesitate to contact me at ju26596 (at) mit.edu. I'm happy to help troubleshoot.
 
 # How to run the code
 
@@ -28,7 +28,7 @@ Now, supposing you've done the above for a variety of parameters (either by modi
 
 # Run the TEAMS algorithm
 
-Open `teams_manager_lorenz96.py`. As above, change `scratch_dir` to your preferred storage location, and `home_dir` to the top-level repo directory. To only run TEAMS, set `tododict['run_teams_flag'] = 1`. The following flags specify post-analysis to perform. If you want return plots comparing to DNS, meaning you set `tododict['summarize_tail'] = 1` and `tododict['plot_return_stats'] = 1`, you must also specify `dns_dir_validation` as the `<dns_dir>/DNS` generated above. 
+Open `teams_manager_lorenz96.py`. Make sure the `if __name__ == "__main__"` block calls `teams_pipeline()`, and then go into the `teams_pipeline()` function to modify according to your machine and desires. As above, change `scratch_dir` to your preferred storage location, and `home_dir` to the top-level repo directory. To only run TEAMS, set `tododict['run_teams_flag'] = 1`. The following flags specify post-analysis to perform. If you want return plots comparing to DNS, meaning you set `tododict['summarize_tail'] = 1` and `tododict['plot_return_stats'] = 1`, you must also specify `dns_dir_validation` as the `<dns_dir>/DNS` generated above. 
 
 Running TEAMS has a few more command line arguments. The first argument, like in DNS, specifies which combination of (`a`, `F_4`) is used in the model, through the index in `maglist` (same as `siglist` in `ensemble_lorenz96.py`, sorry for the inconsistency) and `alist`. There is a further second argument which specifies which advance split time (delta in the paper) to use, as an index in `tadvlist`. Finally, all remaining command line arguments (integers) give a list of seeds to use, one for each independent run of TEAMS. So, for example, to run TEAMS with `a=1`, `F_4=0.5`, and an advance split time of 1.0 for 56 independent seeds, type in the command line 
 
@@ -40,8 +40,18 @@ The output will go into `scratch_dir` in a hierarchical file structure by parame
 
 The many parameters of TEAMS, other than the advance split time, can be further configured in `config_teams.yml`. Note that advance split time is overwritten after being read in, unless you disable `params_from_sysargs`, in which case you need to put in two dummy arguments before {0..55} in the command above. 
 
+After you've done some TEAMS runs with different parameters, you can compare some metrics between them by changing the `if __name__ == "__main__"` block to call `meta_analysis_pipeline()`. Therein lies another `tododict`, of which only two key/item pairs are directly relevant for the paper: `compute_divs_limited` and `plot_divs_limited` respectively compute and plot the two error metrics (and a few others) reported in Fig. 8 of the paper, by averaging over the many (56) runs of TEAMS for each value of stochastic forcing strength and advance split time. As in the case of `ensemble_lorenz96.py` above, output will be aved to `meta_dir` which is specified in `meta_analysis_pipeline()`. 
 
 
+# Run the perturbation-splitting experiments
+
+Open `pert_manager_lorenz96.py`. In the `if __name__ == "__main__"` block, once again you will see two functions: one that runs the experiment, and another that conducts a meta-analysis across different parameters after those experiments have been performed. Inside `pert_pipeline()`, again change `home_dir` and `scratch_dir` according to your machine. Most parameters are set inside `config_onetier.yml` (for the physical parameters), and `config_pert.yml` (the experiment parameters like how long to run the ensembles, how long to wait between ensembles, etc.) But again, two key parameters are overridden by command line arguments: forcing wavenumber and forcing magnitude, whose possible values appear in `wn_list` and `mag_list` respectively. The two command line arguments say which pair of entries to use. So for example, to run wavenumber 4 with a forcing magnitude of 0.5, type 
+```
+python pert_manager_lorenz96.py 1 2
+``` 
+This will not only run and save the ensemble members, but will also call `pert_analysis()` to compute the average divergence timescales across initializations and make some spaghetti plots like Fig. 9 of the paper.
+
+After running `pert_pipeline()` with several parameter sets, you can run `meta_analysis_pipeline()` (no command line arguments needed) to plot summary statistics like the time until a fixed fraction of saturation. The procedure for changing directories etc. closely mirrors the instructions above. 
 
 
 

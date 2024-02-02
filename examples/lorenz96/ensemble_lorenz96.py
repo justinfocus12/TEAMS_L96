@@ -795,7 +795,7 @@ def dns_meta_analysis():
     print(f'Starting meta-analysis')
     # compare PDFs (especially tails) of DNS at different noise levels
     tododict = dict({
-        "plot_hovmuller": 0,
+        "plot_hovmuller": 1,
         "compute_stats": 1,
         "plot_stats": 1,
         })
